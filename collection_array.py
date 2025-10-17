@@ -1,4 +1,24 @@
 from __future__ import annotations
+from array_ed import array
+from dataclasses import dataclass
+
+ARRAY_SIZE = 100
+
+@dataclass
+class Stickers():
+    '''
+    Um conjunto de figurinhas do mesmo tipo de determinado álbum, ou seja,
+    que possuem o mesmo código de identificação e pertençam ao mesmo álbum.
+
+    *code*: É o código de identificação das figurinhas
+
+    *over*: É a quantidade de figurinhas repetidas do mesmo tipo além da primeira.
+            Varia de 0 a N, onde N é a quantidade de figurinhas únicas
+            que o álbum possui. Se for 0, significa que há apenas uma
+            figurinha do tipo, ou seja, nenhuma repetição.
+    '''
+    code: int
+    over: int
 
 class Collection:
     '''
@@ -106,22 +126,27 @@ class Collection:
     >>> # mesmo que 12 seja repetida em b, não será
     >>> # enviada, porque a já possui uma 12
     >>> a.exchange(b)
-     >>> a.str_stickers()
+    >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
     '[3 (1), 60 (3)]'
-    >>> b.str_stikers()
+    >>> b.str_stickers()
     '[0, 3, 9, 12, 51, 54]'
     >>> b.str_repeat()
     '[12 (1), 51 (1)]'
     '''
-    # campos: varia com a implementação
+    # Total de figurinhas únicas
+    unique: int
+    # Agrupamento das figurinhas
+    stikers: array[Stickers]
+
     def __init__(self, unique: int) -> None:
         '''
         Cria uma coleção em relação a um álbum com *unique* figurinhas únicas,
         ou seja, os códigos das figurinhas variam de 0 a *unique*.
         '''
-        raise NotImplementedError
+        self.unique = unique
+        self.stikers = array(ARRAY_SIZE, Stickers(None, 0)) #type: ignore
     
     def insert(self, code: int) -> None:
         '''
@@ -176,4 +201,3 @@ class Collection:
         Requer que *other* seja uma coleção com o mesmo número de cartas únicas
         '''
         raise NotImplementedError
-    
