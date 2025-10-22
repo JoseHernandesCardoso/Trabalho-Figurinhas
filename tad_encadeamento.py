@@ -290,29 +290,37 @@ class Collection:
             bigger = other_repeats
         while len(bigger) > len(smaller):
             bigger.pop()
-        for k in self_repeats:
-            other.insert(k.id)
-            k.units -= 1
-        for j in other_repeats:
-            self.insert(j.id)
-            j.units -= 1
+        self.insert_list(other_repeats)
+        other.insert_list(self_repeats)
         
-    def insert_list(self, lst : list) -> None:
+    def insert_list(self, lst : list[Sticker]) -> None:
         '''
         Insere na coleção adesivos não repetidos com base nos id's de
         *lst*
         '''
+        if lst == []:
+            return None
         i = self.sentinel
         n = 0
         all_added = False
+        if i.next.id > lst[n].id:
+            new = Sticker(self.sentinel, lst[n].id, 1, self.sentinel.next)
+            i.next.previous = new
+            i.next = new
+            lst[n].units -= 1
+            n += 1
         while i.next is not self.sentinel and not all_added:
             i = i.next
-            new = Sticker(self.sentinel.previous, lst[n], 1, self.sentinel)
-            if i.id < lst[n] and (i.next.id > lst[n] or i.next.id == None):
+            new = Sticker(self.sentinel.previous, lst[n].id, 1, self.sentinel)
+            if i.id < lst[n].id and (i.next.id == None or i.next.id > lst[n].id):
                 i.next.previous = new
                 new.next = i.next
                 i.next = new
                 new.previous = i
+                lst[n].units -= 1
+                n += 1
+            if n == len(lst):
+                all_added = True
             
 
 
