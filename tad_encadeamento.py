@@ -83,7 +83,7 @@ class Collection:
     >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b.str_stickers()
     '[]'
     >>> b.insert(12)
@@ -98,9 +98,9 @@ class Collection:
     >>> a.exchange(b)
     >>> b.exchange(a)
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b.str_stickers()
-    '[]'
+    '[0, 9, 12, 51]'
     >>> b.insert(0)
     >>> b.insert(12)
     >>> b.insert(51)
@@ -112,7 +112,7 @@ class Collection:
     >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> # Serão realizadas 2 trocas ente a e b.
     >>> # a enviará 3 e 54
     >>> # b enviará 0 e 51
@@ -122,7 +122,7 @@ class Collection:
     >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
-    '[3 (1), 60 (3)]'
+    '[3 (1), 54 (1), 60 (2)]'
     >>> b.str_stickers()
     '[0, 3, 9, 12, 51, 54]'
     >>> b.str_repeat()
@@ -171,15 +171,21 @@ class Collection:
                     on_collection = True
             if not on_collection:
                 new = Sticker(self.sentinel.previous, code, 1, self.sentinel)
-                i = self.sentinel.next
+                i = self.sentinel
+                if i.next.id > code:
+                    i.next.previous = new
+                    new.next = i.next
+                    i.next = new
+                    new.previous = self.sentinel
+                    on_collection = True
                 while i.next is not self.sentinel and not on_collection:
-                    if i.id < code and (i.next.id > code):
+                    i = i.next
+                    if i.id < code and (i.next.id is None or i.next.id > code):
                         i.next.previous = new
                         new.next = i.next
                         i.next = new
                         new.previous = i
                         on_collection = True
-                    i = i.next
                 if not on_collection:
                     self.sentinel.previous.next = new
                     self.sentinel.previous = new
@@ -239,13 +245,15 @@ class Collection:
         repetida.
         '''
         string = '['
-        i = self.sentinel.next
-        if i is not self.sentinel:
-            string = string + str(i.id) + ' (' + str(i.units - 1) + ')'
-            while i.next is not self.sentinel:
-                i = i.next
-                if i.units > 1:
-                    string = string + ', ' + str(i.id) + ' (' + str(i.units - 1) + ')'
+        i = self.sentinel
+        first = True
+        while i.next is not self.sentinel:
+            i = i.next
+            if i.units > 1 and not first:
+                string = string + ', ' + str(i.id) + ' (' + str(i.units - 1) + ')'
+            elif i.units > 1 and first:
+                string = string + str(i.id) + ' (' + str(i.units - 1) + ')'
+                first =False
         string = string + ']'
         return string
     
@@ -264,16 +272,49 @@ class Collection:
         self_repeats = []
         other_repeats = []
         i = self.sentinel
+        
         while i.next is not self.sentinel:
             i = i.next
             if not other.have(i.id) and i.units > 1:
-                self_repeats.append(i.id)
-                i.units -= 1
-        while i.next is not self.sentinel:
+                self_repeats.append(i)
+        i = other.sentinel
+        while i.next is not other.sentinel:
             i = i.next
-            if not other.have(i.id) and i.units > 1:
-                self_repeats.append(i.id)
-                i.units -= 1
+            if not self.have(i.id) and i.units > 1:
+                other_repeats.append(i)
+        if len(self_repeats) > len(other_repeats):
+            smaller = other_repeats
+            bigger = self_repeats 
+        else:
+            smaller = self_repeats
+            bigger = other_repeats
+        while len(bigger) > len(smaller):
+            bigger.pop()
+        for k in self_repeats:
+            other.insert(k.id)
+            k.units -= 1
+        for j in other_repeats:
+            self.insert(j.id)
+            j.units -= 1
+        
+    def insert_list(self, lst : list) -> None:
+        '''
+        Insere na coleção adesivos não repetidos com base nos id's de
+        *lst*
+        '''
+        i = self.sentinel
+        n = 0
+        all_added = False
+        while i.next is not self.sentinel and not all_added:
+            i = i.next
+            new = Sticker(self.sentinel.previous, lst[n], 1, self.sentinel)
+            if i.id < lst[n] and (i.next.id > lst[n] or i.next.id == None):
+                i.next.previous = new
+                new.next = i.next
+                i.next = new
+                new.previous = i
+            
+
 
     
     
