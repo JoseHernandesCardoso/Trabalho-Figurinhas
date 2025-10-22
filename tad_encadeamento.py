@@ -1,5 +1,18 @@
 from __future__ import annotations
 
+class Sticker:
+
+    next : Sticker | None
+    id : int
+    units : int
+    previous : Sticker
+
+    def __init__(self, previous, id, units, next) -> None:
+        self.id = id
+        self.next = next
+        self.previous = previous
+        self.units = units
+
 class Collection:
     '''
     Uma coleção de figurinhas de um determinado álbum.
@@ -14,13 +27,13 @@ class Collection:
     '[]'
     >>> # Testando inserir e remover figurinhas dentro do intervalo
     >>> a.insert(3)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3]'
     >>> a.insert(41)
     >>> a.insert(29)
     >>> a.insert(3)
     >>> a.str_repeat()
-    '[]'
+    '[3 (1)]'
     >>> a.insert(3)
     >>> a.insert(54)
     >>> a.insert(29)
@@ -56,10 +69,10 @@ class Collection:
     >>> a.insert(60)
     >>> a.insert(60)
     >>> a.insert(60)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b = Collection(60)
     >>> b.str_stickers()
     '[]'
@@ -67,7 +80,7 @@ class Collection:
     >>> # Pois b não possui figurinhas para trocar.
     >>> a.exchange(b)
     >>> b.exchange(a)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
     '[3 (2), 54 (1), 60 (3)]'
@@ -92,11 +105,11 @@ class Collection:
     >>> b.insert(12)
     >>> b.insert(51)
     >>> b.insert(51)
-    >>> b.str_stikers()
+    >>> b.str_stickers()
     '[0, 9, 12, 51]'
     >>> b.str_repeat()
     '[0 (1), 12 (1), 51 (2)]'
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
     '[3 (2), 54 (1), 60 (3)]'
@@ -106,22 +119,33 @@ class Collection:
     >>> # mesmo que 12 seja repetida em b, não será
     >>> # enviada, porque a já possui uma 12
     >>> a.exchange(b)
-     >>> a.str_stikers()
+    >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
     '[3 (1), 60 (3)]'
-    >>> b.str_stikers()
+    >>> b.str_stickers()
     '[0, 3, 9, 12, 51, 54]'
     >>> b.str_repeat()
     '[12 (1), 51 (1)]'
     '''
     # campos: varia com a implementação
+
+    max_sticker : int
+    sentinel : Sticker
+    start : Sticker | None
+    end : Sticker | None
+
     def __init__(self, unique: int) -> None:
         '''
         Cria uma coleção em relação a um álbum com *unique* figurinhas únicas,
         ou seja, os códigos das figurinhas variam de 0 a *unique*.
         '''
-        raise NotImplementedError
+        self.max_sticker = unique
+        self.sentinel = Sticker(None, None, None, None)
+        self.sentinel.next = self.sentinel
+        self.sentinel.previous = self.sentinel
+        self.start = None
+        self.end = None
     
     def insert(self, code: int) -> None:
         '''
@@ -131,29 +155,82 @@ class Collection:
         Se a figurinha não estiver no intervalo das possíveis figurinhas
         do álbum, nada acontece.
         '''
-        raise NotImplementedError
-
+        on_collection = False
+        if code > self.max_sticker or code < 0:
+            return None
+        if self.sentinel.next is self.sentinel:
+            new = Sticker(self.sentinel, code, 1, self.sentinel)
+            self.sentinel.next = new
+            self.sentinel.previous = new
+        else:
+            i = self.sentinel
+            while i.next is not self.sentinel and not on_collection:
+                i = i.next
+                if i.id == code:
+                    i.units += 1
+                    on_collection = True
+            if not on_collection:
+                new = Sticker(self.sentinel.previous, code, 1, self.sentinel)
+                i = self.sentinel.next
+                while i.next is not self.sentinel and not on_collection:
+                    if i.id < code and (i.next.id > code):
+                        i.next.previous = new
+                        new.next = i.next
+                        i.next = new
+                        new.previous = i
+                        on_collection = True
+                    i = i.next
+                if not on_collection:
+                    self.sentinel.previous.next = new
+                    self.sentinel.previous = new
     def remove(self, code: int) -> None:
         '''
         Reduz em 1 a quantidade da figurinha de código *code*.
 
-        Se a quantidade da figurinha redizir para 0, ela é removida
+        Se a quantidade da figurinha reduzir para 0, ela é removida
         da coleção. Se a figurinha não estiver na coleção, nada acontece.
         '''
-        raise NotImplementedError
+        removed = False
+        i = self.sentinel
+        while i.next is not self.sentinel and not removed:
+            i = i.next
+            if i.id == code and i.units == 1:
+                i.previous.next = i.next
+                i.next.previous = i.previous
+                removed = True
+            elif i.id == code and i.units >1:
+                i.units -= 1
+                removed = True
+
+
     
     def have(self, code: int) -> bool:
         '''
         Retorna True se a figurinha de código *code* está na coleção.
         Retorna False em caso contrário.
         '''
-        raise NotImplementedError
-    
+        i = self.sentinel
+        found = False
+        while i.next is not self.sentinel and not found:
+            i = i.next
+            if i.id == code:
+                found = True
+        return found
+
     def str_stickers(self) -> str:
         '''
         Gera uma representação em formato de sting das figurinhas da coleção.
         '''
-        raise NotImplementedError
+        
+        string = '['
+        i = self.sentinel.next
+        if i is not self.sentinel:
+            string = string + str(i.id)
+            while i.next is not self.sentinel:
+                i = i.next
+                string = string + ', ' + str(i.id)
+        string = string + ']'
+        return string
     
     def str_repeat(self) -> str:
         '''
@@ -161,7 +238,16 @@ class Collection:
         da coleção, junto com a quantidade (além da primeira) de cada figurinha
         repetida.
         '''
-        raise NotImplementedError
+        string = '['
+        i = self.sentinel.next
+        if i is not self.sentinel:
+            string = string + str(i.id) + ' (' + str(i.units - 1) + ')'
+            while i.next is not self.sentinel:
+                i = i.next
+                if i.units > 1:
+                    string = string + ', ' + str(i.id) + ' (' + str(i.units - 1) + ')'
+        string = string + ']'
+        return string
     
     def exchange(self, other: Collection):
         '''
@@ -175,5 +261,19 @@ class Collection:
 
         Requer que *other* seja uma coleção com o mesmo número de cartas únicas
         '''
-        raise NotImplementedError
+        self_repeats = []
+        other_repeats = []
+        i = self.sentinel
+        while i.next is not self.sentinel:
+            i = i.next
+            if not other.have(i.id) and i.units > 1:
+                self_repeats.append(i.id)
+                i.units -= 1
+        while i.next is not self.sentinel:
+            i = i.next
+            if not other.have(i.id) and i.units > 1:
+                self_repeats.append(i.id)
+                i.units -= 1
+
+    
     
