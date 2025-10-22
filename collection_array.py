@@ -5,20 +5,19 @@ from dataclasses import dataclass
 ARRAY_SIZE = 100
 
 @dataclass
-class Stickers():
+class StickersGroup():
     '''
     Um conjunto de figurinhas do mesmo tipo de determinado álbum, ou seja,
     que possuem o mesmo código de identificação e pertençam ao mesmo álbum.
 
-    *code*: É o código de identificação das figurinhas
+    *code*: É o código de identificação das figurinhas. Varia de 0 a N,
+            onde N é a quantidade de figurinhas únicas que o álbum possui.
 
-    *over*: É a quantidade de figurinhas repetidas do mesmo tipo além da primeira.
-            Varia de 0 a N, onde N é a quantidade de figurinhas únicas
-            que o álbum possui. Se for 0, significa que há apenas uma
-            figurinha do tipo, ou seja, nenhuma repetição.
+    *quant*: É a quantidade de figurinhas do mesmo tipo. Se for 0,
+             significa que não há figurinhas do tipo.
     '''
     code: int
-    over: int
+    quant: int
 
 class Collection:
     '''
@@ -40,7 +39,7 @@ class Collection:
     >>> a.insert(29)
     >>> a.insert(3)
     >>> a.str_repeat()
-    '[]'
+    '[3 (1)]'
     >>> a.insert(3)
     >>> a.insert(54)
     >>> a.insert(29)
@@ -79,7 +78,7 @@ class Collection:
     >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b = Collection(60)
     >>> b.str_stickers()
     '[]'
@@ -87,7 +86,7 @@ class Collection:
     >>> # Pois b não possui figurinhas para trocar.
     >>> a.exchange(b)
     >>> b.exchange(a)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
     '[3 (2), 54 (1), 60 (3)]'
@@ -116,7 +115,7 @@ class Collection:
     '[0, 9, 12, 51]'
     >>> b.str_repeat()
     '[0 (1), 12 (1), 51 (2)]'
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
     '[3 (2), 54 (1), 60 (3)]'
@@ -134,19 +133,22 @@ class Collection:
     '[0, 3, 9, 12, 51, 54]'
     >>> b.str_repeat()
     '[12 (1), 51 (1)]'
-    '''
+    ''' 
     # Total de figurinhas únicas
-    unique: int
+    tot_stickers: int
+    # Máximo de figurinhas únicas
+    max_unique: int
     # Agrupamento das figurinhas
-    stikers: array[Stickers]
+    stickers: array[StickersGroup]
 
-    def __init__(self, unique: int) -> None:
+    def __init__(self, max_unique: int) -> None:
         '''
-        Cria uma coleção em relação a um álbum com *unique* figurinhas únicas,
-        ou seja, os códigos das figurinhas variam de 0 a *unique*.
+        Cria uma coleção em relação a um álbum com *max_unique* figurinhas únicas,
+        ou seja, os códigos das figurinhas variam de 0 a *max_unique*.
         '''
-        self.unique = unique
-        self.stikers = array(ARRAY_SIZE, Stickers(None, 0)) #type: ignore
+        self.max_unique = max_unique
+        self.tot_stickers = 0
+        self.stickers = array(ARRAY_SIZE, StickersGroup(None, 0)) #type: ignore
     
     def insert(self, code: int) -> None:
         '''
@@ -156,7 +158,32 @@ class Collection:
         Se a figurinha não estiver no intervalo das possíveis figurinhas
         do álbum, nada acontece.
         '''
-        raise NotImplementedError
+        pos = self.position(code)
+        # Está na lista na posição *pos* -> atualiza quantidade
+        if pos is not None:
+            self.stickers[pos].quant += 1
+        # Não está na lista, mas é válido -> insere ordenado
+        elif code >= 0 and code <= self.max_unique:
+            self.___ordered_insert(code)
+            self.tot_stickers += 1
+    
+    def ___ordered_insert(self, code: int) -> None:
+        '''
+        Insere *code* de forma ordenada em *self.stickers*
+        Função auxiliar de insert().
+        '''
+        if self.is_full():
+            raise ValueError('Coleção cheia')
+        
+        i = self.tot_stickers
+        inserted = False
+        while i >= 0 and not inserted:
+            if i == 0 or self.stickers[i-1].code < code:
+                self.stickers[i] = StickersGroup(code, 1)
+                inserted = True
+            else:
+                self.stickers[i] = self.stickers[i-1]
+            i -= 1
 
     def remove(self, code: int) -> None:
         '''
@@ -167,18 +194,20 @@ class Collection:
         '''
         raise NotImplementedError
     
-    def have(self, code: int) -> bool:
-        '''
-        Retorna True se a figurinha de código *code* está na coleção.
-        Retorna False em caso contrário.
-        '''
-        raise NotImplementedError
-    
     def str_stickers(self) -> str:
         '''
         Gera uma representação em formato de sting das figurinhas da coleção.
         '''
-        raise NotImplementedError
+        string = '['
+        # adiciona o primeiro elemento (se houver)
+        if not self.is_empty():
+            string += str(self.stickers[0].code)
+        # adiciona demais elementos
+        i = 1
+        while i < self.tot_stickers:
+            string += f', {str(self.stickers[i].code)}'
+            i += 1
+        return string + ']'
     
     def str_repeat(self) -> str:
         '''
@@ -186,7 +215,17 @@ class Collection:
         da coleção, junto com a quantidade (além da primeira) de cada figurinha
         repetida.
         '''
-        raise NotImplementedError
+        string = '['
+        # adiciona o primeiro elemento (se houver e for válido)
+        if not self.is_empty() and self.stickers[0].quant > 1:
+            string += f'{str(self.stickers[0].code)} ({str(self.stickers[0].quant - 1)})'
+        # adiciona demais elementos
+        i = 1
+        while i < self.tot_stickers:
+            if self.stickers[i].quant > 1:
+                string += f', {str(self.stickers[i].code)} ({str(self.stickers[i].quant - 1)})'
+            i += 1
+        return string + ']'
     
     def exchange(self, other: Collection):
         '''
@@ -201,3 +240,35 @@ class Collection:
         Requer que *other* seja uma coleção com o mesmo número de cartas únicas
         '''
         raise NotImplementedError
+    
+    def position(self, code: int) -> int | None:
+        '''
+        Retorna a posição i da figurinha de código *code* dentro do agrupamento.
+        Se ela não estiver no agrupamento, retorna None
+        '''
+        position = None
+        # Procura se está na lista 
+        found = False
+        i = 0
+        while not found and i < self.tot_stickers:
+            # Se encontrar, atualiza position e sai do loop
+            if self.stickers[i].code == code:
+                position = i
+                found = True
+            i += 1
+        return position
+    
+    def is_full(self) -> bool:
+        '''
+        Retorna True se o array *self.stickers* está cheio.
+        Retorna False, caso contrário.
+        '''
+        return self.tot_stickers == len(self.stickers)
+    
+    def is_empty(self) -> bool:
+        '''
+        Retorna True se o array *self.stickers* está vazio.
+        Retorna False, caso contrário
+        '''
+        return self.tot_stickers == 0
+    

@@ -106,7 +106,7 @@ class Collection:
     >>> # mesmo que 12 seja repetida em b, não será
     >>> # enviada, porque a já possui uma 12
     >>> a.exchange(b)
-     >>> a.str_stickers()
+    >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
     '[3 (1), 60 (3)]'
