@@ -1,4 +1,108 @@
 from __future__ import annotations
+from dataclasses import dataclass
+
+@dataclass
+class No:
+    '''Um nó em um encadeamento'''
+    item: str
+    prox: No | None
+
+
+class Fila:
+    '''
+    Uma coleção de strings que segue a política FIFO: o primeiro a ser inserido
+    é o primeiro a ser removido.
+
+    Exemplos
+    >>> f = Fila()
+    >>> f.vazia()
+    True
+    >>> f.enfileira('Amanda')
+    >>> f.enfileira('Fernando')
+    >>> f.enfileira('Márcia')
+    >>> f.vazia()
+    False
+    >>> f.desenfileira()
+    'Amanda'
+    >>> f.enfileira('Pedro')
+    >>> f.enfileira('Alberto')
+    >>> while not f.vazia():
+    ...     f.desenfileira()
+    'Fernando'
+    'Márcia'
+    'Pedro'
+    'Alberto'
+    >>> f.desenfileira()
+    '''
+
+    # Invariantes:
+    #   - Se inicio é None, então fim é None
+    #   - Se inicio é um No, então fim é o nó no fim do encadeamento que começa
+    #     em inicio
+    inicio: No | None
+    fim: No | None
+
+    def __init__(self) -> None:
+        '''Cria uma nova fila vazia'''
+        self.inicio = None
+        self.fim = None
+
+    def enfileira(self, item: str):
+        '''
+        Adiciona *item* no final da fila.
+        '''
+        if self.fim is None:
+            assert self.inicio is None
+            self.inicio = No(item, None)
+            self.fim = self.inicio
+        else:
+            self.fim.prox = No(item, None)
+            self.fim = self.fim.prox
+
+    def desenfileira(self) -> str | None:
+        '''
+        Remove e devolve o primeiro elemento da fila.
+
+        Requer que a fila não esteja vazia.
+        '''
+        if self.inicio is None:
+            return None
+        item = self.inicio.item
+        self.inicio = self.inicio.prox
+        if self.inicio is None:
+            self.fim = None
+        return item
+
+    def vazia(self) -> bool:
+        '''
+        Devolve True se a fila está vazia, False caso contrário.
+        '''
+        return self.inicio is None
+    
+    def junta(self, fila : Fila) -> None:
+        '''
+        Adiciona *fila* no final de *self*
+
+        Exemplo
+
+        >>> f1 = Fila()
+        >>> f1.enfileira(1)
+        >>> f1.enfileira(2)
+        >>> f2 = Fila()
+        >>> f2.enfileira(3)
+        >>> f2.enfileira(4)
+        >>> f2.enfileira(5)
+        >>> f1.junta(f2)
+        >>> while not f1.vazia():
+        ...     f1.desenfileira()
+        1
+        2
+        3
+        4
+        5
+        '''
+        self.fim.prox = fila.inicio
+        self.fim = fila.fim
 
 class Sticker:
 
@@ -269,58 +373,81 @@ class Collection:
 
         Requer que *other* seja uma coleção com o mesmo número de cartas únicas
         '''
-        self_repeats = []
-        other_repeats = []
-        i = self.sentinel
-        
-        while i.next is not self.sentinel:
-            i = i.next
-            if not other.have(i.id) and i.units > 1:
-                self_repeats.append(i)
-        i = other.sentinel
-        while i.next is not other.sentinel:
-            i = i.next
-            if not self.have(i.id) and i.units > 1:
-                other_repeats.append(i)
-        if len(self_repeats) > len(other_repeats):
-            smaller = other_repeats
-            bigger = self_repeats 
+        self_repeats = Fila()
+        other_repeats = Fila()
+
+        i = self.sentinel.next
+        j = other.sentinel.next
+        other_number = 0
+        self_number = 0
+
+        while i is not self.sentinel or j is not other.sentinel:
+            if i.id == j.id:
+                i = i.next
+                j = j.next
+            elif i.id is None and j.id is not None:
+                
+                if j.units > 1:
+                    other_repeats.enfileira(j)
+                    other_number += 1 
+                j = j.next
+            elif j.id is None and i.id is not None:
+                if i.units > 1:
+                    self_repeats.enfileira(i)
+                    self_number += 1
+                i = i.next
+            elif i.id < j.id:
+                if i.units > 1:
+                    self_repeats.enfileira(i)
+                    self_number += 1
+                if i is not self.sentinel:
+                    i = i.next
+                else:
+                    j = j.next
+            elif i.id > j.id:
+                if j.units > 1:
+                    other_repeats.enfileira(j)
+                    other_number += 1 
+                if j is not other.sentinel:
+                    j = j.next
+                else:
+                    i = i.next
+
+        if self_number > other_number:
+            trades = other_number
         else:
-            smaller = self_repeats
-            bigger = other_repeats
-        while len(bigger) > len(smaller):
-            bigger.pop()
-        self.insert_list(other_repeats)
-        other.insert_list(self_repeats)
+            trades = self_number
+        self.insert_queue(other_repeats,trades)
+        other.insert_queue(self_repeats, trades)
         
-    def insert_list(self, lst : list[Sticker]) -> None:
+    def insert_queue(self, fila : Fila, n : int) -> None:
         '''
-        Insere na coleção adesivos não repetidos com base nos id's de
-        *lst*
+        Insere na coleção adesivos não repetidos com base na Fila de adesivos,
+        *n* vezes
         '''
-        if lst == []:
+        if n == 0:
             return None
         i = self.sentinel
-        n = 0
-        all_added = False
-        if i.next.id > lst[n].id:
-            new = Sticker(self.sentinel, lst[n].id, 1, self.sentinel.next)
+        item = fila.desenfileira()
+        if i.next.id > item.id:
+            new = Sticker(i, item.id, 1, i.next)
             i.next.previous = new
             i.next = new
-            lst[n].units -= 1
-            n += 1
-        while i.next is not self.sentinel and not all_added:
+            item.units -= 1
+            n -= 1
+            item = fila.desenfileira()
+        while i.next is not self.sentinel and n > 0:
             i = i.next
-            new = Sticker(self.sentinel.previous, lst[n].id, 1, self.sentinel)
-            if i.id < lst[n].id and (i.next.id == None or i.next.id > lst[n].id):
+            new = Sticker(i, item.id, 1, i.next)
+            if i.id < item.id and (i.next is self.sentinel or i.next.id > item.id):
                 i.next.previous = new
-                new.next = i.next
                 i.next = new
-                new.previous = i
-                lst[n].units -= 1
-                n += 1
-            if n == len(lst):
-                all_added = True
+                item.units -= 1
+                n -= 1
+                item = fila.desenfileira()
+            
+            
+
             
 
 
