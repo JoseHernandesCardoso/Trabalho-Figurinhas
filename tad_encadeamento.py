@@ -4,35 +4,14 @@ from dataclasses import dataclass
 @dataclass
 class No:
     '''Um nó em um encadeamento'''
-    item: str
+    item: Sticker
     prox: No | None
 
 
 class Fila:
     '''
-    Uma coleção de strings que segue a política FIFO: o primeiro a ser inserido
+    Uma coleção de Stickers que segue a política FIFO: o primeiro a ser inserido
     é o primeiro a ser removido.
-
-    Exemplos
-    >>> f = Fila()
-    >>> f.vazia()
-    True
-    >>> f.enfileira('Amanda')
-    >>> f.enfileira('Fernando')
-    >>> f.enfileira('Márcia')
-    >>> f.vazia()
-    False
-    >>> f.desenfileira()
-    'Amanda'
-    >>> f.enfileira('Pedro')
-    >>> f.enfileira('Alberto')
-    >>> while not f.vazia():
-    ...     f.desenfileira()
-    'Fernando'
-    'Márcia'
-    'Pedro'
-    'Alberto'
-    >>> f.desenfileira()
     '''
 
     # Invariantes:
@@ -47,7 +26,7 @@ class Fila:
         self.inicio = None
         self.fim = None
 
-    def enfileira(self, item: str):
+    def enfileira(self, item: Sticker):
         '''
         Adiciona *item* no final da fila.
         '''
@@ -59,14 +38,14 @@ class Fila:
             self.fim.prox = No(item, None)
             self.fim = self.fim.prox
 
-    def desenfileira(self) -> str | None:
+    def desenfileira(self) -> Sticker:
         '''
         Remove e devolve o primeiro elemento da fila.
 
         Requer que a fila não esteja vazia.
         '''
         if self.inicio is None:
-            return None
+            return None #type: ignore
         item = self.inicio.item
         self.inicio = self.inicio.prox
         if self.inicio is None:
@@ -79,35 +58,10 @@ class Fila:
         '''
         return self.inicio is None
     
-    def junta(self, fila : Fila) -> None:
-        '''
-        Adiciona *fila* no final de *self*
-
-        Exemplo
-
-        >>> f1 = Fila()
-        >>> f1.enfileira(1)
-        >>> f1.enfileira(2)
-        >>> f2 = Fila()
-        >>> f2.enfileira(3)
-        >>> f2.enfileira(4)
-        >>> f2.enfileira(5)
-        >>> f1.junta(f2)
-        >>> while not f1.vazia():
-        ...     f1.desenfileira()
-        1
-        2
-        3
-        4
-        5
-        '''
-        self.fim.prox = fila.inicio
-        self.fim = fila.fim
-
 class Sticker:
 
-    next : Sticker | None
-    id : int
+    next : Sticker
+    id :  int
     units : int
     previous : Sticker
 
@@ -236,8 +190,6 @@ class Collection:
 
     max_sticker : int
     sentinel : Sticker
-    start : Sticker | None
-    end : Sticker | None
 
     def __init__(self, unique: int) -> None:
         '''
@@ -274,21 +226,18 @@ class Collection:
                     i.units += 1
                     on_collection = True
             if not on_collection:
-                new = Sticker(self.sentinel.previous, code, 1, self.sentinel)
                 i = self.sentinel
+                new = Sticker(i, code, 1, i.next)
                 if i.next.id > code:
                     i.next.previous = new
-                    new.next = i.next
                     i.next = new
-                    new.previous = self.sentinel
                     on_collection = True
                 while i.next is not self.sentinel and not on_collection:
                     i = i.next
+                    new = Sticker(i, code, 1, i.next)
                     if i.id < code and (i.next.id is None or i.next.id > code):
                         i.next.previous = new
-                        new.next = i.next
                         i.next = new
-                        new.previous = i
                         on_collection = True
                 if not on_collection:
                     self.sentinel.previous.next = new
