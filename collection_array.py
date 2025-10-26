@@ -2,7 +2,7 @@ from __future__ import annotations
 from array_ed import array
 from dataclasses import dataclass
 
-ARRAY_SIZE = 100
+INITIAL_ARRAY_SIZE = 2
 
 @dataclass
 class StickersGroup():
@@ -148,7 +148,7 @@ class Collection:
         '''
         self.max_unique = max_unique
         self.tot_stickers = 0
-        self.stickers = array(ARRAY_SIZE, StickersGroup(None, 0)) #type: ignore
+        self.stickers = array(INITIAL_ARRAY_SIZE, StickersGroup(None, 0)) #type: ignore
     
     def insert(self, code: int) -> None:
         '''
@@ -173,7 +173,7 @@ class Collection:
         Função auxiliar de insert().
         '''
         if self.is_full():
-            raise ValueError('Coleção cheia')
+            self.expand()
         
         i = self.tot_stickers
         inserted = False
@@ -335,7 +335,10 @@ class Collection:
         Retorna True se o array *self.stickers* está cheio.
         Retorna False, caso contrário.
         '''
-        return self.tot_stickers == len(self.stickers)
+        # Algumas métodos (como o remove) requerem que o array sempre tenha,
+        # pelo menos, um espaço livre. Portanto, o tamanho da coleção deve
+        # ser um a menos do array. 
+        return self.tot_stickers == len(self.stickers) - 1
     
     def is_empty(self) -> bool:
         '''
@@ -349,7 +352,8 @@ class Collection:
         Insere um novo grupo de figurinhas de código *code* no final da coleção
         '''
         if self.is_full():
-            raise ValueError('Cheio')
+            self.expand()
+
         self.stickers[self.tot_stickers] = StickersGroup(code, 1)
         self.tot_stickers += 1
     
@@ -400,115 +404,19 @@ class Collection:
         self.stickers[i] = self.stickers[end]
         self.stickers[end] = temp
         return i
+    
+    def expand(self) -> None:
+        '''
+        Aumenta em 2x a capacidade máxima da coleção
+        '''
+        old_size = len(self.stickers)
+        new = array(old_size * 2, StickersGroup(None, 0)) #type: ignore
+        for i in range(old_size):
+            new[i] = self.stickers[i]
+        self.stickers = new
 
 def last_item_is(lst: list[int], item: int) -> bool:
     '''
     Verifica se o último item de *lst* é *item*
     '''
     return not len(lst) == 0 and lst[-1] == item
-
-
-a = Collection(60)
-a.str_stickers()
-
-a.str_repeat()
-
-# Testando inserir e remover figurinhas dentro do intervalo
-a.insert(3)
-a.str_stickers()
-
-a.insert(41)
-a.insert(29)
-a.insert(3)
-a.str_repeat()
-
-a.insert(3)
-a.insert(54)
-a.insert(29)
-a.str_stickers()
-
-a.str_repeat()
-
-a.remove(29)
-a.remove(3)
-a.remove(41)
-a.remove(60) # não está na coleção, então nada deve ocorrer
-a.str_stickers()
-
-a.str_repeat()
-# Testando inserir e remover fora do intervalo
-# Essas operações não podem alterar a coleção
-a.insert(-1)
-a.insert(61)
-a.remove(-4)
-a.remove(72)
-a.str_stickers()
-
-a.str_repeat()
-
-# Testndo troca de figurinhas
-a.insert(3)
-a.insert(12)
-a.insert(54)
-a.insert(54)
-a.insert(33)
-a.insert(41)
-a.insert(60)
-a.insert(60)
-a.insert(60)
-a.str_stickers()
-a.str_repeat()
-
-b = Collection(60)
-b.str_stickers()
-
-# Nenhuma das trocas devem alterar as coleções
-# Pois b não possui figurinhas para trocar.
-a.exchange(b)
-b.exchange(a)
-a.str_stickers()
-
-a.str_repeat()
-
-b.str_stickers()
-
-b.insert(12)
-b.insert(51)
-b.insert(9)
-b.insert(0)
-b.str_stickers()
-
-b.str_repeat()
-
-# b ainda não poderá trocar
-a.exchange(b)
-b.exchange(a)
-a.str_repeat()
-
-b.str_stickers()
-
-b.insert(0)
-b.insert(12)
-b.insert(51)
-b.insert(51)
-b.str_stickers()
-
-b.str_repeat()
-
-a.str_stickers()
-
-a.str_repeat()
-
-# Serão realizadas 2 trocas ente a e b.
-# a enviará 3 e 54
-# b enviará 0 e 51
-# mesmo que 12 seja repetida em b, não será
-# enviada, porque a já possui uma 12
-a.exchange(b)
-a.str_stickers()
-
-a.str_repeat()
-
-b.str_stickers()
-
-b.str_repeat()
