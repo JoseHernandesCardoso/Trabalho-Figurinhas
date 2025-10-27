@@ -141,6 +141,8 @@ class Collection:
     # Agrupamento das figurinhas
     stickers: array[StickersGroup]
 
+    # MÉTODOS PRINCIPAIS
+
     def __init__(self, max_unique: int) -> None:
         '''
         Cria uma coleção em relação a um álbum com *max_unique* figurinhas únicas,
@@ -158,32 +160,14 @@ class Collection:
         Se a figurinha não estiver no intervalo das possíveis figurinhas
         do álbum, nada acontece.
         '''
-        pos = self.position(code)
+        pos = self.__position(code)
         # Está na lista na posição *pos* -> atualiza quantidade
         if pos is not None:
             self.stickers[pos].quant += 1
         # Não está na lista, mas é válido -> insere ordenado
         elif code >= 0 and code <= self.max_unique:
-            self.___ordered_insert(code)
+            self.__ordered_insert(code)
             self.tot_stickers += 1
-    
-    def ___ordered_insert(self, code: int) -> None:
-        '''
-        Insere *code* de forma ordenada em *self.stickers*
-        Função auxiliar de insert().
-        '''
-        if self.is_full():
-            self.expand()
-        
-        i = self.tot_stickers
-        inserted = False
-        while i >= 0 and not inserted:
-            if i == 0 or self.stickers[i-1].code < code:
-                self.stickers[i] = StickersGroup(code, 1)
-                inserted = True
-            else:
-                self.stickers[i] = self.stickers[i-1]
-            i -= 1
 
     def remove(self, code: int) -> None:
         '''
@@ -192,7 +176,7 @@ class Collection:
         Se a quantidade da figurinha redizir para 0, ela é removida
         da coleção. Se a figurinha não estiver na coleção, nada acontece.
         '''
-        i = self.position(code)
+        i = self.__position(code)
         if i is not None:
             self.stickers[i].quant -= 1
             # Se não houver mais figurinhas do tipo, removemos do array
@@ -208,7 +192,7 @@ class Collection:
         '''
         string = '['
         # adiciona o primeiro elemento (se houver)
-        if not self.is_empty():
+        if not self.__is_empty():
             string += str(self.stickers[0].code)
         # adiciona demais elementos
         i = 1
@@ -257,39 +241,141 @@ class Collection:
         # Salvar indices das figurinhas que vão ser trocadas
         self_to_other: list[int] = []
         other_to_self: list[int] = []
+        self.__eligible_for_exchange(other, self_to_other, other_to_self)
+        
+        # Realizar trocas a partir do indice (inserção no fim)
+        i = 0
+        while i < len(self_to_other) and i < len(other_to_self):
+            self.__append(other.stickers[other_to_self[i]].code)
+            other.__remove_index(other_to_self[i])
+            other.__append(self.stickers[self_to_other[i]].code)
+            self.__remove_index(self_to_other[i])
+            i += 1
+
+        # Ordenar tudo
+        self.__sort(0, self.tot_stickers - 1)
+        other.__sort(0, other.tot_stickers - 1)
+    
+    # MÉTODOS AUXILIARES
+
+    def __ordered_insert(self, code: int) -> None:
+        '''
+        Insere *code* de forma ordenada em *self.stickers*
+        Função auxiliar de insert().
+        '''
+        if self.__is_full():
+            self.__expand()
+        
+        # percorre a lista de trás pra frente
+        i = self.tot_stickers
+        inserted = False
+        while i >= 0 and not inserted:
+            if i == 0 or self.stickers[i-1].code < code:
+                self.stickers[i] = StickersGroup(code, 1)
+                inserted = True
+            else:
+                self.stickers[i] = self.stickers[i-1]
+            i -= 1
+
+    def __position(self, code: int) -> int | None:
+        '''
+        Retorna a posição i da figurinha de código *code* dentro do agrupamento.
+        Se ela não estiver no agrupamento, retorna None
+        '''
+        position = None
+        # Procura se está na lista 
+        found = False
+        i = 0
+        while not found and i < self.tot_stickers:
+            # Se encontrar, atualiza __position e sai do loop
+            if self.stickers[i].code == code:
+                position = i
+                found = True
+            i += 1
+        return position
+    
+    def __is_full(self) -> bool:
+        '''
+        Retorna True se o array *self.stickers* está cheio.
+        Retorna False, caso contrário.
+        '''
+        # Algumas métodos (como o remove) requerem que o array sempre tenha,
+        # pelo menos, um espaço livre. Portanto, o tamanho da coleção deve
+        # ser um a menos do array. 
+        return self.tot_stickers == len(self.stickers) - 1
+    
+    def __is_empty(self) -> bool:
+        '''
+        Retorna True se o array *self.stickers* está vazio.
+        Retorna False, caso contrário
+        '''
+        return self.tot_stickers == 0
+    
+    def __append(self, code: int) -> None:
+        '''
+        Insere um novo grupo de figurinhas de código *code* no final da coleção
+        '''
+        if self.__is_full():
+            self.__expand()
+
+        self.stickers[self.tot_stickers] = StickersGroup(code, 1)
+        self.tot_stickers += 1
+    
+    def __remove_index(self, index: int) -> None:
+        '''
+        Reduz em 1 a quantidade da figurinha que está na posição *index* da coleção.
+        '''
+        self.stickers[index].quant -= 1   
+
+    def __has_next(self, index: int) -> int:
+        '''
+        Retorna True se o elemento na posição *index + 1* na coleção for válido,
+        ou seja, o valor do código da figurinha não é None.
+        '''
+        return self.stickers[index + 1].code is not None
+    
+    def __eligible_for_exchange(self, other: Collection, self_to_other: list[int], \
+                                other_to_self: list[int]) -> None:
+        '''
+        Busca os indices das figurinhas elegiveis para troca entre *self* e *other*.
+         - Os indices das figurinhas de *self* que podem ser enviadas para *other*
+        são salvos em *self_to_other*;
+         - Os indices das figurinhas de *other* que podem ser enviadas para *self*
+        são salvos em *other_to_self*.
+        '''
         i_self = i_other = 0
-        while (self.has_next(i_self) or other.has_next(i_other)) \
-            and not self.is_empty() and not other.is_empty():
+        while (self.__has_next(i_self) or other.__has_next(i_other)) \
+            and not self.__is_empty() and not other.__is_empty():
 
             stk_self = self.stickers[i_self]
             stk_other = other.stickers[i_other]
             if stk_self.code == stk_other.code:
-                if self.has_next(i_self):
+                if self.__has_next(i_self):
                     i_self += 1
-                if other.has_next(i_other):
+                if other.__has_next(i_other):
                     i_other += 1
-            elif stk_self.code > stk_other.code and other.has_next(i_other):
+            elif stk_self.code > stk_other.code and other.__has_next(i_other):
                 if stk_other.quant > 1:
                     other_to_self.append(i_other)
                 i_other += 1
-            elif stk_self.code < stk_other.code and self.has_next(i_self):
+            elif stk_self.code < stk_other.code and self.__has_next(i_self):
                 if stk_self.quant > 1:
                     self_to_other.append(i_self)
                 i_self += 1
-            elif stk_self.code > stk_other.code and not other.has_next(i_other):
+            elif stk_self.code > stk_other.code and not other.__has_next(i_other):
                 if not last_item_is(other_to_self, i_other) and stk_other.quant > 1:
                     other_to_self.append(i_other)
                 if stk_self.quant > 1:
                     self_to_other.append(i_self)
                 i_self += 1
-            elif stk_self.code < stk_other.code and not self.has_next(i_self):
+            elif stk_self.code < stk_other.code and not self.__has_next(i_self):
                 if not last_item_is(self_to_other, i_self) and stk_self.quant > 1:
                     self_to_other.append(i_self)
                 if stk_other.quant > 1:
                     other_to_self.append(i_other)
                 i_other += 1
             
-            if not self.has_next(i_self) and not other.has_next(i_other) and \
+            if not self.__has_next(i_self) and not other.__has_next(i_other) and \
                 stk_self.code != stk_other.code:
                     
                 if not last_item_is(self_to_other, i_self) \
@@ -300,90 +386,21 @@ class Collection:
                     and other.stickers[i_other].quant > 1:
 
                     other_to_self.append(i_other)
-            
-        # Realizar trocas a partir do indice (inserção no fim)
-        i = 0
-        while i < len(self_to_other) and i < len(other_to_self):
-            self.append(other.stickers[other_to_self[i]].code)
-            other.remove_index(other_to_self[i])
-            other.append(self.stickers[self_to_other[i]].code)
-            self.remove_index(self_to_other[i])
-            i += 1
-        # Ordenar tudo
-        self.sort(0, self.tot_stickers - 1)
-        other.sort(0, other.tot_stickers - 1)
-
-    def position(self, code: int) -> int | None:
-        '''
-        Retorna a posição i da figurinha de código *code* dentro do agrupamento.
-        Se ela não estiver no agrupamento, retorna None
-        '''
-        position = None
-        # Procura se está na lista 
-        found = False
-        i = 0
-        while not found and i < self.tot_stickers:
-            # Se encontrar, atualiza position e sai do loop
-            if self.stickers[i].code == code:
-                position = i
-                found = True
-            i += 1
-        return position
     
-    def is_full(self) -> bool:
-        '''
-        Retorna True se o array *self.stickers* está cheio.
-        Retorna False, caso contrário.
-        '''
-        # Algumas métodos (como o remove) requerem que o array sempre tenha,
-        # pelo menos, um espaço livre. Portanto, o tamanho da coleção deve
-        # ser um a menos do array. 
-        return self.tot_stickers == len(self.stickers) - 1
-    
-    def is_empty(self) -> bool:
-        '''
-        Retorna True se o array *self.stickers* está vazio.
-        Retorna False, caso contrário
-        '''
-        return self.tot_stickers == 0
-    
-    def append(self, code: int) -> None:
-        '''
-        Insere um novo grupo de figurinhas de código *code* no final da coleção
-        '''
-        if self.is_full():
-            self.expand()
-
-        self.stickers[self.tot_stickers] = StickersGroup(code, 1)
-        self.tot_stickers += 1
-    
-    def remove_index(self, index: int) -> None:
-        '''
-        Reduz em 1 a quantidade da figurinha que está na posição *index* da coleção.
-        '''
-        self.stickers[index].quant -= 1   
-
-    def has_next(self, index: int) -> int:
-        '''
-        Retorna True se o elemento na posição *index + 1* na coleção for válido,
-        ou seja, o valor do código da figurinha não é None.
-        '''
-        return self.stickers[index + 1].code is not None
-    
-    def sort(self, start: int, end: int) -> None:
+    def __sort(self, start: int, end: int) -> None:
         '''
         Ordena os elementos das posições *start* até *end* da coleção em ordem
         crescente dos códigos das figurinhas.
         '''
         # Ordenação por Quick Sort
         if start < end:
-            pivot = self.partition(start, end)
-            self.sort(start, pivot - 1)
-            self.sort(pivot + 1, end)
+            pivot = self.__partition(start, end)
+            self.__sort(start, pivot - 1)
+            self.__sort(pivot + 1, end)
     
-    def partition(self, start: int, end: int) -> int:
+    def __partition(self, start: int, end: int) -> int:
         '''
-        Função auxiliar de sort().
+        Função auxiliar de __sort().
         Retorna a posição do pivo na ordenação por quick sort.
         '''
         pivot = self.stickers[end]
@@ -405,7 +422,7 @@ class Collection:
         self.stickers[end] = temp
         return i
     
-    def expand(self) -> None:
+    def __expand(self) -> None:
         '''
         Aumenta em 2x a capacidade máxima da coleção
         '''
