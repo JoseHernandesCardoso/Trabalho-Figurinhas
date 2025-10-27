@@ -70,6 +70,15 @@ class Sticker:
         self.next = next
         self.previous = previous
         self.units = units
+    
+    def insert_next(self, stick : Sticker) -> None:
+        '''
+        insere uma figurinha na frente de sí
+        '''
+        self.next.previous = stick
+        stick.next = self.next
+        self.next = stick
+        stick.previous = self
 
 class Collection:
     '''
@@ -212,12 +221,11 @@ class Collection:
         do álbum, nada acontece.
         '''
         on_collection = False
+        new = Sticker(self.sentinel, code, 1, self.sentinel)
         if code > self.max_sticker or code < 0:
             return None
         if self.sentinel.next is self.sentinel:
-            new = Sticker(self.sentinel, code, 1, self.sentinel)
-            self.sentinel.next = new
-            self.sentinel.previous = new
+            self.sentinel.insert_next(new)
         else:
             i = self.sentinel
             while i.next is not self.sentinel and not on_collection:
@@ -227,21 +235,16 @@ class Collection:
                     on_collection = True
             if not on_collection:
                 i = self.sentinel
-                new = Sticker(i, code, 1, i.next)
                 if i.next.id > code:
-                    i.next.previous = new
-                    i.next = new
+                    i.insert_next(new)
                     on_collection = True
                 while i.next is not self.sentinel and not on_collection:
                     i = i.next
-                    new = Sticker(i, code, 1, i.next)
                     if i.id < code and (i.next.id is None or i.next.id > code):
-                        i.next.previous = new
-                        i.next = new
+                        i.insert_next(new)
                         on_collection = True
                 if not on_collection:
-                    self.sentinel.previous.next = new
-                    self.sentinel.previous = new
+                    self.sentinel.insert_next(new)
     def remove(self, code: int) -> None:
         '''
         Reduz em 1 a quantidade da figurinha de código *code*.
@@ -366,7 +369,7 @@ class Collection:
             trades = other_number
         else:
             trades = self_number
-        self.insert_queue(other_repeats,trades)
+        self.insert_queue(other_repeats, trades)
         other.insert_queue(self_repeats, trades)
         
     def insert_queue(self, fila : Fila, n : int) -> None:
@@ -380,8 +383,7 @@ class Collection:
         item = fila.desenfileira()
         if i.next.id > item.id:
             new = Sticker(i, item.id, 1, i.next)
-            i.next.previous = new
-            i.next = new
+            i.insert_next(new)
             item.units -= 1
             n -= 1
             item = fila.desenfileira()
@@ -389,8 +391,7 @@ class Collection:
             i = i.next
             new = Sticker(i, item.id, 1, i.next)
             if i.id < item.id and (i.next is self.sentinel or i.next.id > item.id):
-                i.next.previous = new
-                i.next = new
+                i.insert_next(new)
                 item.units -= 1
                 n -= 1
                 item = fila.desenfileira()
