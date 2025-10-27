@@ -261,21 +261,6 @@ class Collection:
                 i.units -= 1
                 removed = True
 
-
-    
-    def have(self, code: int) -> bool:
-        '''
-        Retorna True se a figurinha de código *code* está na coleção.
-        Retorna False em caso contrário.
-        '''
-        i = self.sentinel
-        found = False
-        while i.next is not self.sentinel and not found:
-            i = i.next
-            if i.id == code:
-                found = True
-        return found
-
     def str_stickers(self) -> str:
         '''
         Gera uma representação em formato de sting das figurinhas da coleção.
