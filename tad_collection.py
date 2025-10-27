@@ -49,7 +49,7 @@ class Collection:
     >>> # Testndo troca de figurinhas
     >>> a.insert(3)
     >>> a.insert(12)
-    >>> a,insert(54)
+    >>> a.insert(54)
     >>> a.insert(54)
     >>> a.insert(33)
     >>> a.insert(41)
