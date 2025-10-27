@@ -20,7 +20,7 @@ class Collection:
     >>> a.insert(29)
     >>> a.insert(3)
     >>> a.str_repeat()
-    '[]'
+    '[3 (1)]'
     >>> a.insert(3)
     >>> a.insert(54)
     >>> a.insert(29)
@@ -59,7 +59,7 @@ class Collection:
     >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b = Collection(60)
     >>> b.str_stickers()
     '[]'
@@ -67,10 +67,10 @@ class Collection:
     >>> # Pois b não possui figurinhas para trocar.
     >>> a.exchange(b)
     >>> b.exchange(a)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b.str_stickers()
     '[]'
     >>> b.insert(12)
@@ -85,9 +85,9 @@ class Collection:
     >>> a.exchange(b)
     >>> b.exchange(a)
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> b.str_stickers()
-    '[]'
+    '[0, 9, 12, 51]'
     >>> b.insert(0)
     >>> b.insert(12)
     >>> b.insert(51)
@@ -96,10 +96,10 @@ class Collection:
     '[0, 9, 12, 51]'
     >>> b.str_repeat()
     '[0 (1), 12 (1), 51 (2)]'
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
-    '[3 (2), 54 (1), 60 (3)]'
+    '[3 (2), 54 (2), 60 (2)]'
     >>> # Serão realizadas 2 trocas ente a e b.
     >>> # a enviará 3 e 54
     >>> # b enviará 0 e 51
@@ -109,8 +109,8 @@ class Collection:
     >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
-    '[3 (1), 60 (3)]'
-    >>> b.str_stikers()
+    '[3 (1), 54 (1), 60 (2)]'
+    >>> b.str_stickers()
     '[0, 3, 9, 12, 51, 54]'
     >>> b.str_repeat()
     '[12 (1), 51 (1)]'
@@ -139,13 +139,6 @@ class Collection:
 
         Se a quantidade da figurinha redizir para 0, ela é removida
         da coleção. Se a figurinha não estiver na coleção, nada acontece.
-        '''
-        raise NotImplementedError
-    
-    def have(self, code: int) -> bool:
-        '''
-        Retorna True se a figurinha de código *code* está na coleção.
-        Retorna False em caso contrário.
         '''
         raise NotImplementedError
     
