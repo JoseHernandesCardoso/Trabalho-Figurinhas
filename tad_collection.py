@@ -14,7 +14,7 @@ class Collection:
     '[]'
     >>> # Testando inserir e remover figurinhas dentro do intervalo
     >>> a.insert(3)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3]'
     >>> a.insert(41)
     >>> a.insert(29)
@@ -56,7 +56,7 @@ class Collection:
     >>> a.insert(60)
     >>> a.insert(60)
     >>> a.insert(60)
-    >>> a.str_stikers()
+    >>> a.str_stickers()
     '[3, 12, 29, 33, 41, 54, 60]'
     >>> a.str_repeat()
     '[3 (2), 54 (1), 60 (3)]'
@@ -92,7 +92,7 @@ class Collection:
     >>> b.insert(12)
     >>> b.insert(51)
     >>> b.insert(51)
-    >>> b.str_stikers()
+    >>> b.str_stickers()
     '[0, 9, 12, 51]'
     >>> b.str_repeat()
     '[0 (1), 12 (1), 51 (2)]'
@@ -106,7 +106,7 @@ class Collection:
     >>> # mesmo que 12 seja repetida em b, não será
     >>> # enviada, porque a já possui uma 12
     >>> a.exchange(b)
-     >>> a.str_stikers()
+    >>> a.str_stickers()
     '[0, 3, 12, 29, 33, 41, 51, 54, 60]'
     >>> a.str_repeat()
     '[3 (1), 60 (3)]'
